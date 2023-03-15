@@ -3,11 +3,15 @@ package com.yourrentals;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.credential.PasswordCredentialModel;
+import org.keycloak.models.credential.dto.PasswordCredentialData;
+import org.keycloak.models.credential.dto.PasswordSecretData;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
@@ -36,23 +40,39 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
             iterations = 1;
         }
 
+        String cryptoAlgorithm = "sha1";
         byte[] salt = generateSalt();
 
-        String encodedPassword = generateHash("sha1", salt, iterations, rawPassword);
-        return PasswordCredentialModel.createFromValues(this.providerId, salt, iterations, encodedPassword);
+        String encodedPassword = generateHash(cryptoAlgorithm, salt, iterations, rawPassword);
+
+        HashMap<String, List<String>> additionalParameters = new HashMap<>();
+        additionalParameters.put("cryptoAlgorithm", List.of(cryptoAlgorithm));
+
+        return PasswordCredentialModel.createFromValues(
+                new PasswordCredentialData(
+                        iterations,
+                        this.providerId,
+                        additionalParameters
+                ),
+                new PasswordSecretData(encodedPassword, salt)
+        );
     }
 
     @Override
     public boolean verify(String rawPassword, PasswordCredentialModel credential) {
-        // Raw password should be a $-delimited array: [algorithm]$[salt]$[iterations]$[hash]
-        // Get the 4
-        String[] decoded = credential.getPasswordSecretData().getValue().split("\\$");
+        // Stored password should be a $-delimited string: [algorithm]$[salt]$[iterations]$[hash]
+        String[] splitted = credential.getPasswordSecretData().getValue().split("\\$");
 
-        if (decoded.length != 4) {
+        // If the password is not in the expected format, return false
+        if (splitted.length != 4) {
             return false;
         }
 
-        return generateHash(decoded[0], decoded[1].getBytes(), Integer.parseInt(decoded[2]), rawPassword).equals(credential.getPasswordSecretData().getValue());
+        String algorithm = splitted[0];
+        byte[] salt = splitted[1].getBytes();
+        int iterations = Integer.parseInt(splitted[2]);
+
+        return generateHash(algorithm, salt, iterations, rawPassword).equals(credential.getPasswordSecretData().getValue());
     }
 
     @Override
