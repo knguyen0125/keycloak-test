@@ -1,4 +1,4 @@
-package com.msalmi;
+package com.yourrentals;
 
 import org.keycloak.Config.Scope;
 import org.keycloak.credential.hash.PasswordHashProvider;
@@ -6,12 +6,12 @@ import org.keycloak.credential.hash.PasswordHashProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-public class SHA1HashProviderFactory implements PasswordHashProviderFactory {
-	public static final String ID = "sha1-salted";
+public class JSPasswordHashProviderFactory implements PasswordHashProviderFactory {
+	public static final String ID = "js-password-hash";
 
 	@Override
 	public PasswordHashProvider create(KeycloakSession session) {
-		return new SHA1HashProvider(getId());
+		return new JSPasswordHashProvider(getId());
 	}
 
 	@Override

@@ -2,18 +2,18 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.msalmi</groupId>
-	<artifactId>keycloak-sha1</artifactId>
+	<groupId>com.yourrentals</groupId>
+	<artifactId>keycloak-password-hash</artifactId>
 
 	<version>0.0.1</version>
-	<name>keycloak-sha1</name>
-	<description>Adds SHA1 hashing support to Keycloak</description>
+	<name>keycloak-password-hash</name>
+	<description>Allow migration from NPM JS password-hash library</description>
 
 	<packaging>jar</packaging>
 
 	<properties>
 		<java.release>11</java.release>
-		<keycloak.version>10.0.0</keycloak.version>
+		<keycloak.version>21.0.1</keycloak.version>
 		<junit.version>5.7.0</junit.version>
 	</properties>
 
@@ -59,7 +59,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>keycloak-sha1</finalName>
+		<finalName>keycloak-password-hash</finalName>
 		<plugins>
 			<!-- Download source code in Eclipse, best practice -->
 			<plugin>
