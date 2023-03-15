@@ -1,11 +1,9 @@
 package com.yourrentals;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.PasswordPolicy;
@@ -20,6 +18,9 @@ import javax.crypto.spec.SecretKeySpec;
 public class JSPasswordHashProvider implements PasswordHashProvider {
 
     private final String providerId;
+    private final String DEFAULT_ALGORITHM = "sha1";
+    private final String ALGORITHM_ADDITIONAL_PARAMETER_KEY = "cryptoAlgorithm";
+
 
     public JSPasswordHashProvider(String providerId) {
         this.providerId = providerId;
@@ -40,13 +41,13 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
             iterations = 1;
         }
 
-        String cryptoAlgorithm = "sha1";
+        String cryptoAlgorithm = DEFAULT_ALGORITHM;
         byte[] salt = generateSalt();
 
         String encodedPassword = generateHash(cryptoAlgorithm, salt, iterations, rawPassword);
 
         HashMap<String, List<String>> additionalParameters = new HashMap<>();
-        additionalParameters.put("cryptoAlgorithm", List.of(cryptoAlgorithm));
+        additionalParameters.put(ALGORITHM_ADDITIONAL_PARAMETER_KEY, List.of(cryptoAlgorithm));
 
         return PasswordCredentialModel.createFromValues(
                 new PasswordCredentialData(
@@ -60,17 +61,9 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
 
     @Override
     public boolean verify(String rawPassword, PasswordCredentialModel credential) {
-        // Stored password should be a $-delimited string: [algorithm]$[salt]$[iterations]$[hash]
-        String[] splitted = credential.getPasswordSecretData().getValue().split("\\$");
-
-        // If the password is not in the expected format, return false
-        if (splitted.length != 4) {
-            return false;
-        }
-
-        String algorithm = splitted[0];
-        byte[] salt = splitted[1].getBytes();
-        int iterations = Integer.parseInt(splitted[2]);
+        String algorithm = credential.getPasswordCredentialData().getAdditionalParameters().get(ALGORITHM_ADDITIONAL_PARAMETER_KEY).get(0);
+        byte[] salt = credential.getPasswordSecretData().getSalt();
+        int iterations = credential.getPasswordCredentialData().getHashIterations();
 
         return generateHash(algorithm, salt, iterations, rawPassword).equals(credential.getPasswordSecretData().getValue());
     }
@@ -83,7 +76,7 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
 
         byte[] salt = generateSalt();
 
-        return generateHash("sha1", salt, iterations, rawPassword);
+        return generateHash(DEFAULT_ALGORITHM, salt, iterations, rawPassword);
     }
 
     /**
@@ -100,6 +93,7 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
 
         try {
             String hash = rawPassword;
+
             for (int i = 0; i < iterations; i++) {
                 // const hmac = crypto.createHmac(algorithm, salt)
                 Mac mac = Mac.getInstance(getJavaAlgorithm(algorithm));
@@ -114,7 +108,7 @@ public class JSPasswordHashProvider implements PasswordHashProvider {
                 hash = String.format("%040x", new BigInteger(1, mac.doFinal()));
             }
 
-            return algorithm + "$" + new String(salt, StandardCharsets.UTF_8) + "$" + iterations + "$" + hash;
+            return hash;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
